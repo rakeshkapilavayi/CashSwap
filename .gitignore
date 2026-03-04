@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+backend/node_modules/
+python-chatbot/venv/
+
+# Environment variables
+.env
+backend/.env
+python-chatbot/.env
+
+# Build files
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Uploads
+backend/uploads/
+
+# Logs
+*.log
+npm-debug.log*

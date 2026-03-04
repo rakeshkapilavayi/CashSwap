@@ -368,14 +368,7 @@ def clarify():
         return jsonify({"error": str(e), "message": "Sorry, something went wrong!"}), 500
 
 
+# Replace the last app.run() line with:
 if __name__ == '__main__':
-    print("\n" + "="*60)
-    print("🚀 Starting CashSwap AI Chatbot API Server...")
-    print("="*60)
-    print("📍 Endpoints:")
-    print("   GET  /health  - Health check")
-    print("   POST /chat    - Main chat endpoint")
-    print("   POST /clarify - Clarification handling")
-    print("="*60 + "\n")
-
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    port = int(os.environ.get('PORT', 5001))
+    app.run(host='0.0.0.0', port=port, debug=False)

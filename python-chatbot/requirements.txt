@@ -1,9 +1,12 @@
 flask
 flask-cors
-groq
 python-dotenv
+gunicorn
+psycopg2-binary
+pydantic>=2.0
 chromadb
-pandas
 sentence-transformers
 semantic-router
+groq
+pandas
 geopy

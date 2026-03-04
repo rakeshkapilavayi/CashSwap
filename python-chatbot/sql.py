@@ -1,7 +1,7 @@
 from groq import Groq
 import os
 import re
-import mysql.connector
+import sqlite3
 import pandas as pd
 from pathlib import Path
 from dotenv import load_dotenv
@@ -340,15 +340,11 @@ def filter_by_radius(df, user_lat, user_lon, radius_km=10):
     return df
 
 
-# --- Function to run SQL query on MySQL ---
+# --- Function to run SQL query on SQLite ---
 def run_query(query):
     try:
-        conn = mysql.connector.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            database=os.getenv("DB_NAME", "cashswap"),
-        )
+        db_path = Path(__file__).parent / "cashswap.db"
+        conn = sqlite3.connect(db_path)
         df = pd.read_sql_query(query, conn)
         conn.close()
         

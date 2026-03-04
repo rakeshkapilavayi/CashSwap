@@ -7,7 +7,6 @@ exports.register = async (req, res) => {
   try {
     const { name, email, phone, password, latitude, longitude } = req.body;
 
-    // Check if user exists
     const [existingUsers] = await db.query(
       'SELECT id FROM users WHERE email = ?',
       [email]
@@ -17,25 +16,22 @@ exports.register = async (req, res) => {
       return res.status(400).json({ error: 'Email already registered' });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Insert user
     const [result] = await db.query(
       'INSERT INTO users (name, email, phone, password_hash, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, email, phone, passwordHash, latitude, longitude]
+      [name, email, phone, passwordHash, latitude || null, longitude || null]
     );
 
     const userId = result.insertId;
 
-    // Create wallet for user
+    // Create wallet for new user
     await db.query(
-      'INSERT INTO wallets (user_id) VALUES (?)',
+      'INSERT INTO wallets (user_id, cash_amount, upi_amount) VALUES (?, 0, 0)',
       [userId]
     );
 
-    // Generate JWT
     const token = jwt.sign(
       { id: userId, email },
       process.env.JWT_SECRET,
@@ -58,7 +54,6 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
     const [users] = await db.query(
       'SELECT id, name, email, phone, password_hash, latitude, longitude FROM users WHERE email = ?',
       [email]
@@ -70,21 +65,17 @@ exports.login = async (req, res) => {
 
     const user = users[0];
 
-    // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
-
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT
     const token = jwt.sign(
       { id: user.id, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Get wallet info
     const [wallet] = await db.query(
       'SELECT cash_amount, upi_amount FROM wallets WHERE user_id = ?',
       [user.id]

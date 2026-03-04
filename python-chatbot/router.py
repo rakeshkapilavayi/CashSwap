@@ -52,6 +52,32 @@ sql = Route(
     score_threshold=0.2
 )
 
+# Radius Change Route - Follow-up requests to expand search area
+radius_change = Route(
+    name='radius_change',
+    utterances=[
+        "increase the radius",
+        "expand the search radius",
+        "show more users",
+        "show more people",
+        "increase search area",
+        "show users in 25 km",
+        "show more users in 30 km",
+        "find people within 40 km",
+        "search within 50 km",
+        "expand to 20 km",
+        "wider search",
+        "increase distance",
+        "show results in larger area",
+        "more results please",
+        "find more nearby users",
+        "search in 25 kilometer radius",
+        "look further away",
+        "extend search to 30 km",
+    ],
+    score_threshold=0.2
+)
+
 # Small Talk Route - Casual conversations
 small_talk = Route(
     name='small_talk',
@@ -78,7 +104,7 @@ small_talk = Route(
 )
 
 
-router = SemanticRouter(routes=[faq, sql, small_talk], encoder=encoder, auto_sync="local")
+router = SemanticRouter(routes=[faq, sql, small_talk, radius_change], encoder=encoder, auto_sync="local")
 
 if __name__ == "__main__":
     # Test cases for CashSwap

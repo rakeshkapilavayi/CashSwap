@@ -1,29 +1,38 @@
-const mysql = require('mysql2');
-require('dotenv').config();
+const path = require('path');
+const fs = require('fs');
+const initSqlJs = require('sql.js');
 
-const connection = mysql.createConnection({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
-});
+const DB_PATH = path.join(__dirname, '..', 'python-chatbot', 'cashswap.db');
 
-connection.connect((err) => {
-  if (err) {
-    console.error('❌ Database connection failed:', err.message);
-    console.error('Error code:', err.code);
-    return;
-  }
-  console.log('✅ Database connected successfully!');
-  
-  // Test query
-  connection.query('SELECT * FROM users LIMIT 1', (error, results) => {
-    if (error) {
-      console.error('❌ Query failed:', error.message);
-    } else {
-      console.log('✅ Query successful!');
-      console.log('Users table exists and is accessible');
+async function test() {
+  try {
+    if (!fs.existsSync(DB_PATH)) {
+      console.error('❌ Database file not found at:', DB_PATH);
+      return;
     }
-    connection.end();
-  });
-});
+
+    const SQL = await initSqlJs();
+    const fileBuffer = fs.readFileSync(DB_PATH);
+    const db = new SQL.Database(fileBuffer);
+
+    console.log('✅ SQLite database connected successfully!');
+    console.log('📁 Path:', DB_PATH);
+
+    const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+    const tableNames = tables[0]?.values.map(r => r[0]) || [];
+    console.log('📋 Tables:', tableNames.join(', '));
+
+    const users = db.exec('SELECT COUNT(*) as count FROM users');
+    console.log('👥 Users in DB:', users[0]?.values[0][0]);
+
+    const wallets = db.exec('SELECT COUNT(*) as count FROM wallets');
+    console.log('💰 Wallets in DB:', wallets[0]?.values[0][0]);
+
+    db.close();
+    console.log('✅ Connection test complete!');
+  } catch (err) {
+    console.error('❌ Error:', err.message);
+  }
+}
+
+test();

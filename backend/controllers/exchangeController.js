@@ -1,18 +1,14 @@
 const db = require('../config/db');
 
-// Calculate distance between two coordinates (Haversine formula)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const EARTH_RADIUS = 6371; // Earth's radius in kilometers
-  
+  const EARTH_RADIUS = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * 
+    Math.cos((lat1 * Math.PI) / 180) *
     Math.cos((lat2 * Math.PI) / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return EARTH_RADIUS * c;
 };
@@ -23,7 +19,6 @@ exports.searchUsers = async (req, res) => {
     const userId = req.user.id;
     const { amount, exchangeType, radius } = req.body;
 
-    // Get current user's location
     const [currentUser] = await db.query(
       'SELECT latitude, longitude FROM users WHERE id = ?',
       [userId]
@@ -36,7 +31,6 @@ exports.searchUsers = async (req, res) => {
     const userLat = parseFloat(currentUser[0].latitude);
     const userLng = parseFloat(currentUser[0].longitude);
 
-    // Get all users with wallets
     const [users] = await db.query(
       `SELECT u.id, u.name, u.email, u.phone, u.latitude, u.longitude,
               w.cash_amount, w.upi_amount
@@ -46,31 +40,24 @@ exports.searchUsers = async (req, res) => {
       [userId]
     );
 
-    // Filter users based on criteria
     const matches = users.filter(user => {
-      // Check if user has sufficient funds
       const hasAmount = exchangeType === 'cash-to-upi'
         ? parseFloat(user.upi_amount) >= parseFloat(amount)
         : parseFloat(user.cash_amount) >= parseFloat(amount);
 
       if (!hasAmount) return false;
 
-      // Check distance
       const distance = calculateDistance(
-        userLat,
-        userLng,
-        parseFloat(user.latitude),
-        parseFloat(user.longitude)
+        userLat, userLng,
+        parseFloat(user.latitude), parseFloat(user.longitude)
       );
 
       if (distance > radius) return false;
 
-      // Add distance to user object
       user.distance = distance.toFixed(1);
       return true;
     });
 
-    // Sort by distance
     matches.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance));
 
     res.json({
@@ -79,10 +66,7 @@ exports.searchUsers = async (req, res) => {
         id: user.id,
         name: user.name,
         phone: user.phone,
-        location: {
-          lat: parseFloat(user.latitude),
-          lng: parseFloat(user.longitude)
-        },
+        location: { lat: parseFloat(user.latitude), lng: parseFloat(user.longitude) },
         wallet: {
           cash: parseFloat(user.cash_amount) || 0,
           upi: parseFloat(user.upi_amount) || 0
@@ -108,10 +92,7 @@ exports.createRequest = async (req, res) => {
       [userId, amount, exchangeType, searchRadius]
     );
 
-    res.status(201).json({
-      message: 'Exchange request created',
-      requestId: result.insertId
-    });
+    res.status(201).json({ message: 'Exchange request created', requestId: result.insertId });
   } catch (error) {
     console.error('Create request error:', error);
     res.status(500).json({ error: 'Failed to create exchange request' });
@@ -144,7 +125,6 @@ exports.createMatch = async (req, res) => {
     const userId = req.user.id;
     const { requestId } = req.body;
 
-    // Check if request exists
     const [requests] = await db.query(
       'SELECT requester_id FROM exchange_requests WHERE id = ?',
       [requestId]
@@ -154,17 +134,12 @@ exports.createMatch = async (req, res) => {
       return res.status(404).json({ error: 'Request not found' });
     }
 
-    // Create match
     const [result] = await db.query(
-      `INSERT INTO matches (request_id, provider_id)
-       VALUES (?, ?)`,
+      `INSERT INTO matches (request_id, provider_id) VALUES (?, ?)`,
       [requestId, userId]
     );
 
-    res.status(201).json({
-      message: 'Match created successfully',
-      matchId: result.insertId
-    });
+    res.status(201).json({ message: 'Match created successfully', matchId: result.insertId });
   } catch (error) {
     console.error('Create match error:', error);
     res.status(500).json({ error: 'Failed to create match' });
@@ -183,10 +158,7 @@ exports.getMyMatches = async (req, res) => {
        FROM matches m
        JOIN exchange_requests r ON m.request_id = r.id
        JOIN users u ON (
-         CASE 
-           WHEN r.requester_id = ? THEN m.provider_id
-           ELSE r.requester_id
-         END
+         CASE WHEN r.requester_id = ? THEN m.provider_id ELSE r.requester_id END
        ) = u.id
        WHERE r.requester_id = ? OR m.provider_id = ?
        ORDER BY m.created_at DESC`,

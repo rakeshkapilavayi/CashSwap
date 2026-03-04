@@ -1,0 +1,9 @@
+flask
+flask-cors
+groq
+python-dotenv
+chromadb
+pandas
+sentence-transformers
+semantic-router
+geopy

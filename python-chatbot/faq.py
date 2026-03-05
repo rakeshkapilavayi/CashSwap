@@ -4,13 +4,20 @@ import chromadb
 from groq import Groq
 from dotenv import load_dotenv
 import os
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+
 load_dotenv()
 
 faqs_path = Path(__file__).parent/"resources"/"cashswap_chatbot_faq.csv"
 chroma_client = chromadb.EphemeralClient()
 collection_name_faq = "faqs"
 
-ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
+ef = OpenAIEmbeddingFunction(
+    api_key=os.getenv("GROQ_API_KEY"),
+    api_base="https://api.groq.com/openai/v1",
+    model_name="text-embedding-3-small"
+)
+
 def ingest_faq_data(path):
     if collection_name_faq not in [c.name for c in chroma_client.list_collections()]:
         print('Ingesting data into collection...')

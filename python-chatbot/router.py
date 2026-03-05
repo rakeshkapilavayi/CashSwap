@@ -1,6 +1,7 @@
 from semantic_router import Route
 from semantic_router.routers import SemanticRouter
-from semantic_router.encoders import HuggingFaceEncoder
+from semantic_router.encoders import OpenAIEncoder
+import os
 
 # FAQ Route
 faq = Route(
@@ -99,14 +100,16 @@ small_talk = Route(
     score_threshold=0.2
 )
 
-# Lazy-loaded router - only loads the heavy model on first request
+# Lazy-loaded router - only loads on first request
 _router_instance = None
 
 def get_router():
     global _router_instance
     if _router_instance is None:
-        encoder = HuggingFaceEncoder(
-            name="sentence-transformers/all-MiniLM-L6-v2"
+        encoder = OpenAIEncoder(
+            name="text-embedding-3-small",
+            openai_api_key=os.getenv("GROQ_API_KEY"),
+            openai_base_url="https://api.groq.com/openai/v1"
         )
         _router_instance = SemanticRouter(
             routes=[faq, sql, small_talk, radius_change],

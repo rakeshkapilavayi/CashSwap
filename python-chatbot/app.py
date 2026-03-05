@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from faq import ingest_faq_data, faq_chain
+import threading
 from pathlib import Path
 from router import router
 from sql import (
@@ -18,14 +19,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 app = Flask(__name__)
 CORS(app)
 
-faqs_path = Path(__file__).parent / "resources/cashswap_chatbot_faq.csv"
-ingest_faq_data(faqs_path)
+def startup():
+    faqs_path = Path(__file__).parent / "resources/cashswap_chatbot_faq.csv"
+    ingest_faq_data(faqs_path)
+    print("🤖 CashSwap AI Chatbot API Started!")
+    print("=" * 60)
 
-print("🤖 CashSwap AI Chatbot API Started!")
-print("=" * 60)
+threading.Thread(target=startup, daemon=True).start()
 
 # ── Server-side memory: remembers last SQL intent per user ──────────────────
 # Enables radius follow-ups without frontend needing to track state

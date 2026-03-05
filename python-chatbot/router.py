@@ -1,5 +1,5 @@
 from semantic_router import Route
-from semantic_router.routers import SemanticRouter
+from semantic_router.layer import RouteLayer as SemanticRouter
 from semantic_router.encoders import OpenAIEncoder
 import os
 

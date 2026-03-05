@@ -23,13 +23,11 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-def startup():
-    faqs_path = Path(__file__).parent / "resources/cashswap_chatbot_faq.csv"
-    ingest_faq_data(faqs_path)
-    print("🤖 CashSwap AI Chatbot API Started!")
-    print("=" * 60)
+faqs_path = Path(__file__).parent / "resources/cashswap_chatbot_faq.csv"
+ingest_faq_data(faqs_path)
 
-threading.Thread(target=startup, daemon=True).start()
+print("🤖 CashSwap AI Chatbot API Started!")
+print("=" * 60)
 
 # ── Server-side memory: remembers last SQL intent per user ──────────────────
 # Enables radius follow-ups without frontend needing to track state

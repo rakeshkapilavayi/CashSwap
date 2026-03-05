@@ -10,8 +10,7 @@ faqs_path = Path(__file__).parent/"resources"/"cashswap_chatbot_faq.csv"
 chroma_client = chromadb.EphemeralClient()
 collection_name_faq = "faqs"
 
-ef = chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-
+ef = chromadb.utils.embedding_functions.DefaultEmbeddingFunction()
 def ingest_faq_data(path):
     if collection_name_faq not in [c.name for c in chroma_client.list_collections()]:
         print('Ingesting data into collection...')

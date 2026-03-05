@@ -7,7 +7,7 @@ import os
 load_dotenv()
 
 faqs_path = Path(__file__).parent/"resources"/"cashswap_chatbot_faq.csv"
-chroma_client = chromadb.Client()
+chroma_client = chromadb.EphemeralClient()
 collection_name_faq = "faqs"
 
 ef = chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")

@@ -26,7 +26,7 @@ This chatbot is the AI assistant embedded inside the CashSwap platform. It helps
 |----------|-----|
 | 🌍 CashSwap Website | [cashswapp.vercel.app](https://cashswapp.vercel.app/) |
 | 🤖 Chatbot API | [cashswap-chatbot.onrender.com](https://cashswap-chatbot.onrender.com/) |
-| ⚙️ Backend API | [datapulse-backend-ojwl.onrender.com](https://datapulse-backend-ojwl.onrender.com/) |
+| ⚙️ Backend API | [datapulse-backend-ojwl.onrender.com](https://cashswap-backend.onrender.com) |
 
 ---
 
@@ -39,7 +39,7 @@ This chatbot is the AI assistant embedded inside the CashSwap platform. It helps
 Open both of these links in your browser **before** visiting the website. Wait until each one shows a response (may take 30–60 seconds on first load):
 
 1. 👉 [cashswap-chatbot.onrender.com](https://cashswap-chatbot.onrender.com/) — Chatbot API
-2. 👉 [datapulse-backend-ojwl.onrender.com](https://datapulse-backend-ojwl.onrender.com/) — Main Backend
+2. 👉 [datapulse-backend-ojwl.onrender.com](https://cashswap-backend.onrender.com/) — Main Backend
 
 > Once you see a response (e.g., `{"status": "ok"}` or a welcome message), the servers are awake and ready.
 

@@ -13,7 +13,7 @@ const ChatWindow = ({ otherUser, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
-  const currentUserId = JSON.parse(localStorage.getItem('cashswap_user')).id;
+  const currentUserId = JSON.parse(localStorage.getItem('cashswap_user')).id || 'null';
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {

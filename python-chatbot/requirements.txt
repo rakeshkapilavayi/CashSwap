@@ -7,3 +7,4 @@ pandas==2.2.2
 geopy==2.4.1
 gunicorn==22.0.0
 numpy==1.26.4
+PyJWT==2.9.0

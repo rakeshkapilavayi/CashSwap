@@ -287,7 +287,23 @@ def run_query(query):
     except Exception as e:
         print(f"Error executing query: {e}")
         return None
-
+def get_user_location(user_id):
+    """Fetch the authenticated user's saved location from the DB."""
+    try:
+        db_path = Path(__file__).parent / "cashswap.db"
+        if not db_path.exists():
+            return None
+        conn = sqlite3.connect(str(db_path))
+        cur = conn.cursor()
+        cur.execute("SELECT latitude, longitude FROM users WHERE id = ?", (user_id,))
+        row = cur.fetchone()
+        conn.close()
+        if row and row[0] is not None and row[1] is not None:
+            return {"latitude": row[0], "longitude": row[1]}
+        return None
+    except Exception as e:
+        print(f"Error fetching user location: {e}")
+        return None
 
 # --- Data Comprehension ---
 def data_comprehension(question, context):

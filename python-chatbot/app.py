@@ -9,17 +9,21 @@ from sql import (
     generate_sql_query,
     run_query,
     filter_by_radius,
-    data_comprehension
+    data_comprehension,
+    get_user_location
 )
 from smalltalk import talk
 import re
 import os
+import jwt as pyjwt
 from dotenv import load_dotenv
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+JWT_SECRET = os.getenv("JWT_SECRET")
 
 faqs_path = Path(__file__).parent / "resources/cashswap_chatbot_faq.csv"
 ingest_faq_data(faqs_path)
@@ -28,8 +32,31 @@ print("🤖 CashSwap AI Chatbot API Started!")
 print("=" * 60)
 
 # Server-side memory: remembers last SQL intent per user
-# Enables radius follow-ups without frontend needing to track state
 _last_intent: dict = {}  # { user_id: intent_info }
+
+
+AUTH_REQUIRED_RESPONSE = {
+    "message": "🔒 You'll need to log in or sign up first so I can find exchange partners near you!",
+    "route": "auth_required",
+    "needs_clarification": False,
+    "requires_auth": True
+}
+
+
+def get_authenticated_user_id(req):
+    """Return the user id from a valid Bearer token, or None if missing/invalid."""
+    auth_header = req.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None
+
+    token = auth_header.split(' ', 1)[1]
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        # Try common key names used when signing the token
+        return payload.get('id') or payload.get('userId') or payload.get('user_id')
+    except pyjwt.PyJWTError as e:
+        print(f"JWT decode error: {e}")
+        return None
 
 
 def detect_radius_followup(query):
@@ -49,6 +76,25 @@ def detect_radius_followup(query):
     return None
 
 
+def resolve_user_location(user_id, client_location):
+    """
+    Always prefer the server-stored location for the authenticated user.
+    Falls back to the client-supplied location/radius only if DB lookup fails,
+    but still keeps the client's requested radius.
+    """
+    radius = (client_location or {}).get('radius', 10)
+    db_location = get_user_location(user_id)
+
+    if db_location:
+        return {**db_location, 'radius': radius}
+
+    # Fallback — no saved location in DB
+    if client_location and 'latitude' in client_location and 'longitude' in client_location:
+        return client_location
+
+    return {'latitude': 16.5062, 'longitude': 80.648, 'radius': radius}
+
+
 def handle_sql_query(query, user_id, user_location):
     """Handle SQL queries with clarification flow"""
     intent_info = detect_intent(query)
@@ -56,7 +102,6 @@ def handle_sql_query(query, user_id, user_location):
     if not intent_info['needs_clarification']:
         return execute_sql_query(query, intent_info, user_id, user_location)
 
-    # Needs clarification — figure out what's missing
     if intent_info['user_wants'] == 'not_specified':
         return {
             "needs_clarification": True,
@@ -87,7 +132,6 @@ Or type `any` if you want to see all available amounts.""",
             "intent_info": intent_info
         }
 
-    # All info present — run query
     return execute_sql_query(query, intent_info, user_id, user_location)
 
 
@@ -123,7 +167,6 @@ def execute_sql_query(original_query, intent_info, user_id, user_location):
                 "users": []
             }
 
-        # Filter by radius
         if user_location and 'latitude' in user_location and 'longitude' in user_location:
             user_lat = user_location['latitude']
             user_lon = user_location['longitude']
@@ -153,7 +196,6 @@ def execute_sql_query(original_query, intent_info, user_id, user_location):
         radius_km = user_location.get('radius', 10) if user_location else 10
         answer += f"\n\n---\n📍 *Search radius: {radius_km} km from your location*"
 
-        # Save intent for radius follow-ups
         _last_intent[user_id] = intent_info
 
         return {
@@ -174,7 +216,6 @@ def execute_sql_query(original_query, intent_info, user_id, user_location):
 def handle_clarification_response(response_text, clarification_type, intent_info, user_id, user_location):
     """Process user's clarification response"""
 
-    # Radius clarification (from radius_change route)
     if clarification_type == "radius":
         new_radius = detect_radius_followup(response_text)
         last_intent = _last_intent.get(user_id)
@@ -199,7 +240,6 @@ def handle_clarification_response(response_text, clarification_type, intent_info
         updated_location = {**user_location, 'radius': new_radius}
         return execute_sql_query(response_text, last_intent, user_id, updated_location)
 
-    # user_wants clarification
     if clarification_type == "user_wants":
         response_lower = response_text.lower().strip()
 
@@ -238,7 +278,6 @@ Or type `any` if you want to see all available amounts.""",
         else:
             return execute_sql_query(response_text, intent_info, user_id, user_location)
 
-    # amount clarification
     elif clarification_type == "amount":
         response_lower = response_text.lower().strip()
 
@@ -270,8 +309,8 @@ def chat():
     try:
         data = request.json
         query = data.get('message', '')
-        user_id = data.get('user_id', 1)
-        user_location = data.get('user_location', {
+        client_user_id = data.get('user_id', 1)
+        client_location = data.get('user_location', {
             'latitude': 16.5062,
             'longitude': 80.648,
             'radius': 10
@@ -282,6 +321,18 @@ def chat():
 
         route = router(query).name
         print(f"📍 Route: {route} | Query: {query}")
+
+        # Gate SQL / radius routes behind authentication
+        if route in ('sql', 'radius_change'):
+            authed_user_id = get_authenticated_user_id(request)
+            if authed_user_id is None:
+                return jsonify(AUTH_REQUIRED_RESPONSE)
+
+            user_id = authed_user_id
+            user_location = resolve_user_location(user_id, client_location)
+        else:
+            user_id = client_user_id
+            user_location = client_location
 
         if route == 'faq':
             answer = faq_chain(query)
@@ -339,16 +390,23 @@ def chat():
 def clarify():
     """Handle clarification responses"""
     try:
+        # Clarification flow is only ever part of the SQL flow — auth required
+        authed_user_id = get_authenticated_user_id(request)
+        if authed_user_id is None:
+            return jsonify(AUTH_REQUIRED_RESPONSE)
+
         data = request.json
         query = data.get('message', '')
         clarification_type = data.get('clarification_type', '')
         intent_info = data.get('intent_info', None)
-        user_id = data.get('user_id', 1)
-        user_location = data.get('user_location', {
+        client_location = data.get('user_location', {
             'latitude': 16.5062,
             'longitude': 80.648,
             'radius': 10
         })
+
+        user_id = authed_user_id
+        user_location = resolve_user_location(user_id, client_location)
 
         result = handle_clarification_response(
             query,

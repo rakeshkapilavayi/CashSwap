@@ -18,7 +18,11 @@ const INITIAL_MESSAGE = {
   users: null
 };
 
-const ChatBot = () => {
+// requireAuth is passed down from App.jsx. If a user isn't logged in,
+// calling requireAuth(action) will pop the login/signup overlay and
+// run `action` automatically once they log in. Defaults to running
+// the action immediately, so this component still works standalone.
+const ChatBot = ({ requireAuth = (fn) => fn() }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([INITIAL_MESSAGE]);
   const [inputMessage, setInputMessage] = useState('');
@@ -177,13 +181,15 @@ const ChatBot = () => {
     }
   };
 
-  // Handle chat with user
+  // Handle chat with user - now gated behind login/signup
   const handleChatWithUser = (user) => {
-    setChatUser({
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      profilePhoto: user.profile_photo
+    requireAuth(() => {
+      setChatUser({
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        profilePhoto: user.profile_photo
+      });
     });
   };
 

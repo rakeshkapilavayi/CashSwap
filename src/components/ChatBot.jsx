@@ -83,6 +83,7 @@ const ChatBot = ({ requireAuth = (fn) => fn() }) => {
   };
 
   // Send message to Python chatbot API
+  // Send message to Python chatbot API
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
@@ -100,8 +101,9 @@ const ChatBot = ({ requireAuth = (fn) => fn() }) => {
 
     try {
       const userData = getUserData();
+      const token = localStorage.getItem('cashswap_token'); // ✅ added
       const endpoint = clarificationState ? '/clarify' : '/chat';
-      
+
       const payload = {
         message: currentInput,
         user_id: userData?.id || 1,
@@ -120,7 +122,9 @@ const ChatBot = ({ requireAuth = (fn) => fn() }) => {
         })
       };
 
-      const response = await axios.post(`${PYTHON_API_URL}${endpoint}`, payload);
+      const response = await axios.post(`${PYTHON_API_URL}${endpoint}`, payload, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {} // ✅ added
+      });
 
       // Handle response
       const botMessage = {
@@ -132,6 +136,14 @@ const ChatBot = ({ requireAuth = (fn) => fn() }) => {
       };
 
       setMessages(prev => [...prev, botMessage]);
+
+      // ✅ added — backend says login/signup is required
+      if (response.data.requires_auth) {
+        setClarificationState(null);
+        setIsLoading(false);
+        requireAuth(() => {}); // opens the login/signup overlay
+        return;
+      }
 
       // Update clarification state if needed
       if (response.data.needs_clarification) {

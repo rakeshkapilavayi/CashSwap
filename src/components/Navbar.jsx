@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Home, ArrowLeftRight, User, Info, LogOut, Moon, Sun } from 'lucide-react';
+import { Home, ArrowLeftRight, User, Info, LogOut, LogIn, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const Navbar = ({ currentPage, setCurrentPage, onLogout, isDarkMode, toggleTheme }) => {
+const Navbar = ({ currentPage, setCurrentPage, onLogout, isAuthenticated, onLoginClick, isDarkMode, toggleTheme }) => {
   // Navigation menu items
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
@@ -47,7 +47,7 @@ const Navbar = ({ currentPage, setCurrentPage, onLogout, isDarkMode, toggleTheme
                 >
                   <Icon className="h-4 w-4 mr-2" />
                   {item.label}
-                  
+
                   {/* Active indicator */}
                   {isActive && (
                     <motion.div
@@ -84,16 +84,28 @@ const Navbar = ({ currentPage, setCurrentPage, onLogout, isDarkMode, toggleTheme
               </motion.div>
             </Button>
 
-            {/* Logout Button */}
-            <Button
-              onClick={onLogout}
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              aria-label="Logout"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            {/* Login / Logout */}
+            {isAuthenticated ? (
+              <Button
+                onClick={onLogout}
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Logout"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
+            ) : (
+              <Button
+                onClick={onLoginClick}
+                variant="ghost"
+                size="icon"
+                className="rounded-full"
+                aria-label="Login"
+              >
+                <LogIn className="h-5 w-5" />
+              </Button>
+            )}
           </div>
         </div>
 

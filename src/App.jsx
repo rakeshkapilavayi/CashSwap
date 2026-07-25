@@ -15,45 +15,54 @@ import ChatBot from '@/components/ChatBot';
 // LocalStorage keys
 const STORAGE_KEYS = {
   USER: 'cashswap_user',
+  TOKEN: 'cashswap_token',
   THEME: 'cashswap_theme',
 };
 
 // Pages that require the user to be logged in
 const PROTECTED_PAGES = ['exchange', 'account'];
 
+// ─── Read auth state synchronously so the very first render is correct.
+// This prevents the "flash of unauthenticated state" that caused the
+// login modal to appear on every navigation click after a refresh.
+function getInitialAuthState() {
+  try {
+    const user = localStorage.getItem(STORAGE_KEYS.USER);
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    return !!(user && token);
+  } catch {
+    return false;
+  }
+}
+
+function getInitialTheme() {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.THEME) !== 'light';
+  } catch {
+    return true;
+  }
+}
+
 function App() {
+  // ─── Auth & theme initialised synchronously — no useEffect needed ───
+  const [isAuthenticated, setIsAuthenticated] = useState(getInitialAuthState);
+  const [isDarkMode, setIsDarkMode] = useState(getInitialTheme);
+
   const [currentPage, setCurrentPage] = useState('home');
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Controls the login/signup overlay
   const [showAuthModal, setShowAuthModal] = useState(false);
-  // Remembers what the user was trying to do, so we can resume after login
+  // Remembers what the user was trying to do so we can resume after login
   const [pendingAction, setPendingAction] = useState(null);
-
-  // Initialize authentication and theme on mount
-  useEffect(() => {
-    const savedUser = localStorage.getItem(STORAGE_KEYS.USER);
-    if (savedUser) {
-      setIsAuthenticated(true);
-    }
-
-    const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
-    if (savedTheme) {
-      setIsDarkMode(savedTheme === 'dark');
-    }
-  }, []);
 
   // Apply theme changes to document
   useEffect(() => {
     const htmlElement = document.documentElement;
-
     if (isDarkMode) {
       htmlElement.classList.add('dark');
     } else {
       htmlElement.classList.remove('dark');
     }
-
     localStorage.setItem(STORAGE_KEYS.THEME, isDarkMode ? 'dark' : 'light');
   }, [isDarkMode]);
 
@@ -93,6 +102,7 @@ function App() {
   // Handle user logout
   const handleLogout = () => {
     localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.TOKEN);
     setIsAuthenticated(false);
     setCurrentPage('home');
   };
@@ -157,7 +167,7 @@ function App() {
         {/* Toast Notifications */}
         <Toaster />
 
-        {/* Login/Signup Overlay - shown only when an action requires an account */}
+        {/* Login/Signup Overlay */}
         <AnimatePresence>
           {showAuthModal && (
             <motion.div
